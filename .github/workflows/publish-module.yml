@@ -1,1 +1,27 @@
-
+name: Publish TRACKR module
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/publish-module.yml'
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and verify module
+        env:
+          SOURCE_URL: https://github.com/Lumia1193/orbit-releases/releases/download/build-2026101403/trackr-1.0.module.zip
+          EXPECTED_SHA256: e1aa0d0cd39998e19e8908786d579536e4d8279d0b15b0f6e44b9ba14dd9e7d9
+        run: |
+          curl --fail --location --retry 3 "$SOURCE_URL" --output trackr-1.0.module.zip
+          echo "$EXPECTED_SHA256  trackr-1.0.module.zip" | sha256sum --check --strict
+          if unzip -Z1 trackr-1.0.module.zip | grep -Ei '\.icuewidget$'; then exit 1; fi
+      - name: Publish TRACKR 1.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view module-build-2026101402 --repo "$GH_REPO" >/dev/null 2>&1; then exit 0; fi
+          gh release create module-build-2026101402 trackr-1.0.module.zip --repo "$GH_REPO" --title 'TRACKR 1.0' --notes 'TRACKR companion module for Orbit. Install and update from Orbit. No .icuewidget file is included. Your existing library stays on your PC.'
